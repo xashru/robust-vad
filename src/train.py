@@ -48,7 +48,7 @@ train_loader, val_loader, test_loader = data_loader.get_data_loader(data_params,
 
 criterion = nn.CrossEntropyLoss()
 max_epochs = args.epoch
-model = models.__dict__[args.model]
+model = models.__dict__[args.model]()
 model.to(device)
 optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 scheduler = MultiStepLR(optimizer, milestones=[15, 25], gamma=0.1)
@@ -165,9 +165,9 @@ def train():
             x, y = x.to(device), y.to(device)
             x = x.float()
             if args.dropblock:
-                y_pred = model(x)
-            else:
                 y_pred = model(x, (1 + epoch) / max_epochs * 0.3)
+            else:
+                y_pred = model(x)
 
             optimizer.zero_grad()
             loss = criterion(y_pred, y)
