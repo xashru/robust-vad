@@ -160,6 +160,7 @@ def train():
         train_iteration = 0
         correct = 0
         total = 0
+        print('Epoch: ', epoch)
         for x, y, _ in train_loader:
             x, y = x.to(device), y.to(device)
             x = x.float()
@@ -179,7 +180,6 @@ def train():
             total += x.shape[0]
         train_loss /= train_iteration
         acc = correct / total
-        print('Epoch: ', epoch)
         log = 'Train=> Loss: {}, Acc: {} \n'.format(train_loss, acc)
         with open(log_file, 'a') as f:
             f.write(log)

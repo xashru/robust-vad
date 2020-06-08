@@ -16,7 +16,7 @@ class Dataset(data.Dataset):
                 if len(line):
                     feat_file, label, snr = line.split(',')
                     feat = np.load(os.path.join(data_root, feat_file))
-                    self.data.append([feat, int(label), int(snr)])
+                    self.data.append([feat, int(label), int(float(snr))])
 
     def __len__(self):
         return len(self.data)
