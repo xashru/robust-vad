@@ -1,2 +1,4 @@
 from .cnn import *
-from .dropblock import *
+from .dnn import DNN20
+from .lstm import LSTM
+from .preact_resnet import PreActResNet18

@@ -7,6 +7,7 @@ from scipy.optimize import brentq
 from torch.optim.lr_scheduler import MultiStepLR
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import json
 import time
 from tqdm import tqdm
@@ -30,6 +31,9 @@ parser.add_argument('--spec-aug', default=False, type=lambda x: (str(x).lower() 
                     help='whether to use spec augment')
 parser.add_argument('--dropblock', default=False, type=lambda x: (str(x).lower() == 'true'),
                     help='whether to use dropblock in CNN')
+parser.add_argument('--alpha', default=0.95, type=float, help='Distillation alpha')
+parser.add_argument('--T', default=8, type=int, help='Distillation temperature')
+
 
 args = parser.parse_args()
 
@@ -52,9 +56,10 @@ if args.use_pickle:
     data_loader = DataLoaderPickle(args.data_root)
 else:
     data_loader = DataLoaderCSV(args.csv_path, args.data_root)
-train_loader, val_loader, test_loaders = data_loader.get_data_loader(data_params, args.spec_aug)
+train_loader, val_loader, test_loaders = data_loader.get_data_loader(data_params, args.spec_aug, distil=True)
 
 criterion = nn.CrossEntropyLoss()
+criterion_kldiv = nn.KLDivLoss(reduction='batchmean')
 max_epochs = args.epoch
 model = models.__dict__[args.model]()
 model.to(device)
@@ -171,8 +176,8 @@ def train():
         print('Epoch: ', epoch)
         with open(log_file, 'a') as f:
             f.write('Epoch: {}\n'.format(epoch))
-        for x, y, _ in tqdm(train_loader, desc='train'):
-            x, y = x.to(device), y.to(device)
+        for x, y, _, yt in tqdm(train_loader, desc='train'):
+            x, y, yt = x.to(device), y.to(device), yt.to(device)
             x = x.float()
             if args.dropblock:
                 y_pred = model(x, (1 + epoch) / max_epochs * 0.3)
@@ -180,7 +185,8 @@ def train():
                 y_pred = model(x)
 
             optimizer.zero_grad()
-            loss = criterion(y_pred, y)
+            loss = (1. - args.alpha) * criterion(y_pred, y) + args.alpha * criterion_kldiv(
+                F.log_softmax(y_pred / args.T, dim=1), F.softmax(yt / args.T, dim=1)) * (args.alpha * args.T * args.T)
             train_loss += loss.item()
             train_iteration += 1
 

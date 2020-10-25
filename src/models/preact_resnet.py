@@ -1,3 +1,6 @@
+"""
+Implementation is from https://github.com/kuangliu/pytorch-cifar
+"""
 import torch.nn as nn
 import torch.nn.functional as F
 
